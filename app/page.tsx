@@ -21,13 +21,22 @@ const ANGLES = [
 ];
 
 const POSITIONS = [
-  { value: '', label: 'Automático' },
-  { value: 'close-up portrait, face focused', label: 'Close-up (rostro)' },
-  { value: 'medium shot, upper body', label: 'Plano medio (torso)' },
-  { value: 'full body shot', label: 'Cuerpo completo' },
-  { value: 'wide shot, full scene', label: 'Plano general' },
-  { value: 'extreme close-up', label: 'Primerísimo primer plano' },
-  { value: 'from the waist up', label: 'De cintura para arriba' },
+  { value: '', label: 'Sin posición específica' },
+  { value: 'missionary position', label: 'Misionero' },
+  { value: 'doggy style, from behind', label: 'Perrito (doggy)' },
+  { value: 'cowgirl position, riding on top', label: 'Cowgirl (ella arriba)' },
+  { value: 'reverse cowgirl', label: 'Cowgirl inversa' },
+  { value: 'standing sex, against the wall', label: 'De pie (contra la pared)' },
+  { value: 'spooning position', label: 'Cucharita' },
+  { value: '69 position', label: '69' },
+  { value: 'lotus position', label: 'Loto' },
+  { value: 'prone bone', label: 'Prone bone' },
+  { value: 'mating press', label: 'Mating press' },
+  { value: 'amazon position', label: 'Amazon' },
+  { value: 'full nelson', label: 'Full nelson' },
+  { value: 'bent over', label: 'Inclinada / bent over' },
+  { value: 'legs over shoulders', label: 'Piernas sobre hombros' },
+  { value: 'on all fours', label: 'A cuatro patas' },
 ];
 
 const ASPECTS = [
@@ -49,7 +58,6 @@ export default function Home() {
   const [error, setError] = useState('');
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
 
-  // Cargar galería al montar
   useEffect(() => {
     try {
       const saved = localStorage.getItem('venice-gallery');
@@ -57,7 +65,6 @@ export default function Home() {
     } catch {}
   }, []);
 
-  // Guardar galería cuando cambie
   useEffect(() => {
     try {
       localStorage.setItem('venice-gallery', JSON.stringify(gallery));
@@ -99,14 +106,13 @@ export default function Home() {
 
       setImage(data.image);
 
-      // Añadir a galería
       const newItem: GalleryItem = {
         id: Date.now().toString(),
         prompt: buildFinalPrompt(),
         image: data.image,
         createdAt: Date.now(),
       };
-      setGallery(prev => [newItem, ...prev].slice(0, 30)); // máximo 30
+      setGallery(prev => [newItem, ...prev].slice(0, 30));
     } catch (err: any) {
       setError(err.message || 'Error desconocido');
     } finally {
@@ -150,7 +156,6 @@ export default function Home() {
         </p>
       </header>
 
-      {/* Formulario principal */}
       <div style={{
         background: '#1a1a1a',
         borderRadius: '16px',
@@ -181,13 +186,23 @@ export default function Home() {
           }}
         />
 
-        {/* Opciones */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
           gap: '12px',
           marginBottom: '14px',
         }}>
+          <div>
+            <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '4px' }}>Posición sexual</label>
+            <select
+              value={position}
+              onChange={(e) => setPosition(e.target.value)}
+              style={selectStyle}
+            >
+              {POSITIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+
           <div>
             <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '4px' }}>Ángulo / Cámara</label>
             <select
@@ -196,17 +211,6 @@ export default function Home() {
               style={selectStyle}
             >
               {ANGLES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '4px' }}>Posición / Plano</label>
-            <select
-              value={position}
-              onChange={(e) => setPosition(e.target.value)}
-              style={selectStyle}
-            >
-              {POSITIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
 
@@ -222,7 +226,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Negative prompt */}
         <div style={{ marginBottom: '16px' }}>
           <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '4px' }}>
             Negative prompt (lo que NO quieres)
@@ -276,7 +279,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Loading */}
       {loading && (
         <div style={{
           display: 'flex',
@@ -302,7 +304,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Imagen actual */}
       {image && !loading && (
         <div style={{
           background: '#1a1a1a',
@@ -338,7 +339,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Galería */}
       {gallery.length > 0 && (
         <section>
           <div style={{
