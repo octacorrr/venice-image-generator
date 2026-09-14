@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt } = await req.json();
+    const body = await req.json();
+    const {
+      prompt,
+      negative_prompt = 'blurry, low quality, deformed, bad anatomy, extra limbs, watermark, text',
+      width = 1024,
+      height = 1024,
+    } = body;
 
     if (!prompt || typeof prompt !== 'string') {
       return NextResponse.json({ error: 'Prompt requerido' }, { status: 400 });
@@ -24,13 +30,14 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'lustify-v8',          // modelo uncensored / NSFW
+        model: 'lustify-v8',
         prompt: prompt,
-        width: 1024,
-        height: 1024,
+        negative_prompt: negative_prompt,
+        width: Number(width) || 1024,
+        height: Number(height) || 1024,
         format: 'webp',
-        safe_mode: false,             // permite NSFW
-        steps: 20,
+        safe_mode: false,
+        steps: 25,
       }),
     });
 
@@ -44,14 +51,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Venice devuelve base64 en data.images[0]
     const base64 = data.images?.[0];
 
     if (!base64) {
       return NextResponse.json({ error: 'No se recibió imagen' }, { status: 500 });
     }
 
-    // Convertimos a data URL para mostrar directo
     const imageUrl = `data:image/webp;base64,${base64}`;
 
     return NextResponse.json({ image: imageUrl });
