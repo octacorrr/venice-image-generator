@@ -13,20 +13,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Prompt requerido' }, { status: 400 });
     }
 
-    // Construimos la URL de Pollinations (sin API key)
-    const encodedPrompt = encodeURIComponent(prompt);
+    // Prompt booster para mejor calidad y definición
+    const qualityBoost = ", highly detailed, sharp focus, intricate details, realistic skin texture, high resolution, 8k, masterpiece, best quality, photorealistic";
+    const fullPrompt = prompt + qualityBoost;
+
+    const encodedPrompt = encodeURIComponent(fullPrompt);
     const params = new URLSearchParams({
       width: String(width),
       height: String(height),
       model: 'flux',
       nologo: 'true',
       private: 'true',
-      enhance: 'false',
+      enhance: 'true',
     });
 
     const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?${params.toString()}`;
 
-    // Devolvemos la URL directamente (funciona como src de <img>)
     return NextResponse.json({ image: imageUrl });
   } catch (err: any) {
     console.error(err);
