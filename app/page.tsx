@@ -9,6 +9,16 @@ type GalleryItem = {
   createdAt: number;
 };
 
+const MODELS = [
+  { value: 'flux', label: 'Flux (rápido)' },
+  { value: 'black-forest-labs/flux.1-schnell', label: 'Flux Schnell' },
+  { value: 'tongyi-mai/z-image-turbo', label: 'Z-Image Turbo' },
+  { value: 'bytedance/seedream-4.0', label: 'Seedream 4.0' },
+  { value: 'bytedance/seedream-5.0-lite', label: 'Seedream 5.0 Lite' },
+  { value: 'openai/gpt-image-1-mini', label: 'GPT Image Mini' },
+  { value: 'x-ai/grok-imagine-image', label: 'Grok Imagine' },
+];
+
 const STYLES = [
   { value: '', label: 'Sin estilo específico' },
   { value: 'photorealistic, realistic', label: 'Realistic' },
@@ -16,7 +26,6 @@ const STYLES = [
   { value: 'anime realistic, semi-realistic anime', label: 'Anime Realistic' },
   { value: '3d render, cgi', label: '3D Render' },
   { value: 'cartoon style', label: 'Cartoon' },
-  { value: 'oil painting style', label: 'Pintura' },
 ];
 
 const COUPLE_TYPES = [
@@ -49,13 +58,10 @@ const POSITIONS = [
   { value: 'doggy style, from behind', label: 'Perrito (doggy)' },
   { value: 'cowgirl position, riding on top', label: 'Cowgirl (ella arriba)' },
   { value: 'reverse cowgirl', label: 'Cowgirl inversa' },
-  { value: 'standing sex, against the wall', label: 'De pie (contra la pared)' },
+  { value: 'standing sex, against the wall', label: 'De pie' },
   { value: 'spooning position', label: 'Cucharita' },
   { value: '69 position', label: '69' },
-  { value: 'lotus position', label: 'Loto' },
-  { value: 'prone bone', label: 'Prone bone' },
-  { value: 'mating press', label: 'Mating press' },
-  { value: 'bent over', label: 'Inclinada / bent over' },
+  { value: 'bent over', label: 'Inclinada' },
   { value: 'on all fours', label: 'A cuatro patas' },
 ];
 
@@ -87,6 +93,7 @@ const DEFAULT_PROMPT = 'beautiful detailed body, seductive expression, intimate 
 
 export default function Home() {
   const [prompt, setPrompt] = useState('');
+  const [model, setModel] = useState('flux');
   const [style, setStyle] = useState('');
   const [coupleType, setCoupleType] = useState('');
   const [location, setLocation] = useState('');
@@ -125,18 +132,13 @@ export default function Home() {
 
   const buildFinalPrompt = () => {
     const parts: string[] = [];
-
     if (coupleType) parts.push(coupleType);
-    if (prompt.trim()) {
-      parts.push(prompt.trim());
-    } else {
-      parts.push(DEFAULT_PROMPT);
-    }
+    if (prompt.trim()) parts.push(prompt.trim());
+    else parts.push(DEFAULT_PROMPT);
     if (position) parts.push(position);
     if (angle) parts.push(angle);
     if (location) parts.push(location);
     if (style) parts.push(style);
-
     return parts.join(', ');
   };
 
@@ -156,6 +158,7 @@ export default function Home() {
           prompt: finalPrompt,
           width: selectedAspect.w,
           height: selectedAspect.h,
+          model,
         }),
       });
 
@@ -202,9 +205,7 @@ export default function Home() {
   };
 
   const clearGallery = () => {
-    if (confirm('¿Borrar toda la galería?')) {
-      setGallery([]);
-    }
+    if (confirm('¿Borrar toda la galería?')) setGallery([]);
   };
 
   const selectStyle: React.CSSProperties = {
@@ -231,15 +232,10 @@ export default function Home() {
       color: currentTheme.text,
       transition: 'background 0.3s, color 0.3s',
     }}>
-      {/* Header con selector de tema */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '4px' }}>
-            Image Generator
-          </h1>
-          <p style={{ color: currentTheme.muted, fontSize: '13px' }}>
-            Powered by Pollinations.ai · Gratis
-          </p>
+          <h1 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '4px' }}>Image Generator</h1>
+          <p style={{ color: currentTheme.muted, fontSize: '13px' }}>Powered by Pollinations.ai</p>
         </div>
 
         <div style={{ position: 'relative' }}>
@@ -297,7 +293,6 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Formulario */}
       <div style={{
         background: currentTheme.card,
         borderRadius: '16px',
@@ -307,7 +302,7 @@ export default function Home() {
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Describe lo que quieres (opcional). Si lo dejas vacío se usa un prompt base..."
+          placeholder="Describe lo que quieres (opcional)..."
           rows={3}
           style={{
             width: '100%',
@@ -335,6 +330,13 @@ export default function Home() {
           gap: '12px',
           marginBottom: '16px',
         }}>
+          <div>
+            <label style={{ fontSize: '12px', color: currentTheme.muted, display: 'block', marginBottom: '4px' }}>Modelo</label>
+            <select value={model} onChange={(e) => setModel(e.target.value)} style={selectStyle}>
+              {MODELS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+
           <div>
             <label style={{ fontSize: '12px', color: currentTheme.muted, display: 'block', marginBottom: '4px' }}>Tipo de pareja</label>
             <select value={coupleType} onChange={(e) => setCoupleType(e.target.value)} style={selectStyle}>
@@ -384,7 +386,7 @@ export default function Home() {
             disabled={loading}
             style={{
               background: loading ? currentTheme.border : currentTheme.accent,
-              color: loading ? currentTheme.muted : (theme === 'dark' ? '#000' : '#000'),
+              color: '#000',
               padding: '11px 26px',
               borderRadius: '999px',
               fontWeight: 600,
@@ -480,9 +482,7 @@ export default function Home() {
             alignItems: 'center',
             marginBottom: '12px',
           }}>
-            <h2 style={{ fontSize: '16px', fontWeight: 600 }}>
-              Galería ({gallery.length})
-            </h2>
+            <h2 style={{ fontSize: '16px', fontWeight: 600 }}>Galería ({gallery.length})</h2>
             <button
               onClick={clearGallery}
               style={{
@@ -527,11 +527,7 @@ export default function Home() {
                   onClick={() => setImage(item.image)}
                   title={item.prompt}
                 />
-                <div style={{
-                  padding: '8px',
-                  display: 'flex',
-                  gap: '6px',
-                }}>
+                <div style={{ padding: '8px', display: 'flex', gap: '6px' }}>
                   <button
                     onClick={() => downloadImage(item.image, `image-${item.id}.jpg`)}
                     style={{

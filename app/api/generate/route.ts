@@ -7,29 +7,37 @@ export async function POST(req: NextRequest) {
       prompt,
       width = 1024,
       height = 1024,
+      model = 'flux',
     } = body;
 
     if (!prompt || typeof prompt !== 'string') {
       return NextResponse.json({ error: 'Prompt requerido' }, { status: 400 });
     }
 
-    // Boosters cortos para no romper la URL
-    const qualityBoost = ", highly detailed, sharp focus, realistic skin, photorealistic, 8k";
-    const fullPrompt = prompt.trim() + qualityBoost;
+    const apiKey = process.env.POLLINATIONS_API_KEY;
 
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'Falta POLLINATIONS_API_KEY en las variables de entorno de Vercel' },
+        { status: 500 }
+      );
+    }
+
+    const qualityBoost = ', highly detailed, sharp focus, realistic skin, photorealistic, 8k';
+    const fullPrompt = prompt.trim() + qualityBoost;
     const encodedPrompt = encodeURIComponent(fullPrompt);
 
     const params = new URLSearchParams({
+      model: model,
       width: String(Math.min(Number(width) || 1024, 1024)),
       height: String(Math.min(Number(height) || 1024, 1024)),
-      model: 'flux',
       nologo: 'true',
       private: 'true',
       enhance: 'true',
+      key: apiKey,
     });
 
-    // Endpoint gratuito (sin API key)
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?${params.toString()}`;
+    const imageUrl = `https://gen.pollinations.ai/image/${encodedPrompt}?${params.toString()}`;
 
     return NextResponse.json({ image: imageUrl });
   } catch (err: any) {
