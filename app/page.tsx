@@ -9,15 +9,19 @@ type GalleryItem = {
   createdAt: number;
 };
 
+// Modelos según catálogo oficial de gen.pollinations.ai
 const MODELS = [
   { value: 'turbo', label: 'Turbo (NSFW · default)' },
+  { value: 'tongyi-mai/z-image-turbo', label: 'Z-Image Turbo' },
   { value: 'flux', label: 'Flux' },
   { value: 'black-forest-labs/flux.1-schnell', label: 'Flux Schnell' },
-  { value: 'tongyi-mai/z-image-turbo', label: 'Z-Image Turbo' },
+  { value: 'lykon/dreamshaper-8-lcm', label: 'DreamShaper 8' },
   { value: 'bytedance/seedream-4.0', label: 'Seedream 4.0' },
   { value: 'bytedance/seedream-5.0-lite', label: 'Seedream 5.0 Lite' },
-  { value: 'openai/gpt-image-1-mini', label: 'GPT Image Mini' },
   { value: 'x-ai/grok-imagine-image', label: 'Grok Imagine' },
+  { value: 'x-ai/grok-imagine-image-quality', label: 'Grok Imagine Quality' },
+  { value: 'openai/gpt-image-1-mini', label: 'GPT Image Mini' },
+  { value: 'openai/gpt-image-2', label: 'GPT Image 2' },
 ];
 
 const QUALITIES = [
@@ -57,7 +61,6 @@ const COUPLE_TYPES = [
   { value: 'threesome, two men and one woman', label: 'Trío (2H + M)' },
 ];
 
-// Nombres simples en UI, detalle interno para mejor resultado
 const POSITIONS = [
   { value: '', label: 'Sin especificar' },
   { value: 'missionary position, legs spread, deep penetration, intimate eye contact', label: '1 · Misionero' },
@@ -149,14 +152,12 @@ export default function Home() {
 
   const buildFinalPrompt = () => {
     const parts: string[] = [];
-
     if (character) parts.push(character);
     if (coupleType) parts.push(coupleType);
     if (prompt.trim()) parts.push(prompt.trim());
     if (position) parts.push(position);
     if (angle) parts.push(angle);
     if (style) parts.push(style);
-
     return parts.join(', ');
   };
 
@@ -188,10 +189,7 @@ export default function Home() {
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Error al generar');
-      }
+      if (!res.ok) throw new Error(data.error || 'Error al generar');
 
       const resultImages: string[] = data.images || (data.image ? [data.image] : []);
       setImages(resultImages);
@@ -210,7 +208,7 @@ export default function Home() {
     }
   };
 
-  const downloadImage = async (src: string, name?: string) => {
+  const downloadImage = (src: string, name?: string) => {
     try {
       const a = document.createElement('a');
       a.href = src;
@@ -274,7 +272,6 @@ export default function Home() {
           >
             Tema ▾
           </button>
-
           {showThemes && (
             <div style={{
               position: 'absolute',
@@ -487,16 +484,7 @@ export default function Home() {
           }}>
             {images.map((img, i) => (
               <div key={i} style={{ textAlign: 'center' }}>
-                <img
-                  src={img}
-                  alt={`Generated ${i + 1}`}
-                  style={{
-                    maxWidth: '100%',
-                    borderRadius: '12px',
-                    display: 'block',
-                    margin: '0 auto',
-                  }}
-                />
+                <img src={img} alt={`Generated ${i + 1}`} style={{ maxWidth: '100%', borderRadius: '12px', display: 'block', margin: '0 auto' }} />
                 <button
                   onClick={() => downloadImage(img, `image-${Date.now()}-${i}.jpg`)}
                   style={{
@@ -520,12 +508,7 @@ export default function Home() {
 
       {gallery.length > 0 && (
         <section>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '12px',
-          }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <h2 style={{ fontSize: '16px', fontWeight: 600 }}>Galería ({gallery.length})</h2>
             <button
               onClick={clearGallery}
@@ -542,62 +525,26 @@ export default function Home() {
               Borrar todo
             </button>
           </div>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-            gap: '12px',
-          }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '12px' }}>
             {gallery.map(item => (
-              <div
-                key={item.id}
-                style={{
-                  background: currentTheme.card,
-                  borderRadius: '12px',
-                  overflow: 'hidden',
-                  border: `1px solid ${currentTheme.border}`,
-                }}
-              >
+              <div key={item.id} style={{ background: currentTheme.card, borderRadius: '12px', overflow: 'hidden', border: `1px solid ${currentTheme.border}` }}>
                 <img
                   src={item.image}
                   alt={item.prompt}
-                  style={{
-                    width: '100%',
-                    aspectRatio: '1',
-                    objectFit: 'cover',
-                    display: 'block',
-                    cursor: 'pointer',
-                  }}
+                  style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block', cursor: 'pointer' }}
                   onClick={() => setImages([item.image])}
                   title={item.prompt}
                 />
                 <div style={{ padding: '8px', display: 'flex', gap: '6px' }}>
                   <button
                     onClick={() => downloadImage(item.image, `image-${item.id}.jpg`)}
-                    style={{
-                      flex: 1,
-                      background: currentTheme.bg,
-                      color: currentTheme.muted,
-                      fontSize: '11px',
-                      padding: '5px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}
+                    style={{ flex: 1, background: currentTheme.bg, color: currentTheme.muted, fontSize: '11px', padding: '5px', borderRadius: '6px', border: 'none', cursor: 'pointer' }}
                   >
                     Descargar
                   </button>
                   <button
                     onClick={() => removeFromGallery(item.id)}
-                    style={{
-                      background: '#331111',
-                      color: '#ff8888',
-                      fontSize: '11px',
-                      padding: '5px 8px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}
+                    style={{ background: '#331111', color: '#ff8888', fontSize: '11px', padding: '5px 8px', borderRadius: '6px', border: 'none', cursor: 'pointer' }}
                   >
                     ✕
                   </button>
