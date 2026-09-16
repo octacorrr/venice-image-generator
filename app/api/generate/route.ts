@@ -13,40 +13,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Prompt requerido' }, { status: 400 });
     }
 
-    const apiKey = process.env.POLLINATIONS_API_KEY;
-
-    // Boosters de calidad
-    const qualityBoost = ", highly detailed, sharp focus, realistic skin, perfect anatomy, photorealistic, 8k";
+    // Boosters cortos para no romper la URL
+    const qualityBoost = ", highly detailed, sharp focus, realistic skin, photorealistic, 8k";
     const fullPrompt = prompt.trim() + qualityBoost;
 
     const encodedPrompt = encodeURIComponent(fullPrompt);
 
-    let imageUrl: string;
+    const params = new URLSearchParams({
+      width: String(Math.min(Number(width) || 1024, 1024)),
+      height: String(Math.min(Number(height) || 1024, 1024)),
+      model: 'flux',
+      nologo: 'true',
+      private: 'true',
+      enhance: 'true',
+    });
 
-    if (apiKey) {
-      // Con API key → endpoint mejor (gen.pollinations.ai)
-      const params = new URLSearchParams({
-        width: String(Math.min(width, 1024)),
-        height: String(Math.min(height, 1024)),
-        model: 'flux',
-        nologo: 'true',
-        private: 'true',
-        enhance: 'true',
-        key: apiKey,
-      });
-      imageUrl = `https://gen.pollinations.ai/image/${encodedPrompt}?${params.toString()}`;
-    } else {
-      // Sin API key → endpoint público
-      const params = new URLSearchParams({
-        width: String(Math.min(width, 1024)),
-        height: String(Math.min(height, 1024)),
-        model: 'flux',
-        nologo: 'true',
-        private: 'true',
-        enhance: 'true',
-      });
-      imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?${params.toString()}`;
-    }
+    // Endpoint gratuito (sin API key)
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?${params.toString()}`;
 
     return NextResponse.json({ image: imageUrl });
   } catch (err: any) {
