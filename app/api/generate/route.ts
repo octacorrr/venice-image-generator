@@ -28,18 +28,40 @@ export async function POST(req: NextRequest) {
     const encodedPrompt = encodeURIComponent(fullPrompt);
 
     const params = new URLSearchParams({
-      model: model,
+      model: String(model),
       width: String(Math.min(Number(width) || 1024, 1024)),
       height: String(Math.min(Number(height) || 1024, 1024)),
       nologo: 'true',
       private: 'true',
       enhance: 'true',
-      key: apiKey,
     });
 
     const imageUrl = `https://gen.pollinations.ai/image/${encodedPrompt}?${params.toString()}`;
 
-    return NextResponse.json({ image: imageUrl });
+    // Llamada con Authorization Bearer (como indican las docs)
+    const response = await fetch(imageUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      console.error('Pollinations error:', response.status, errorText);
+      return NextResponse.json(
+        { error: `Error de Pollinations (${response.status}): ${errorText.slice(0, 200) || response.statusText}` },
+        { status: 500 }
+      );
+    }
+
+    // Convertimos la imagen a base64 para devolverla al frontend
+    const arrayBuffer = await response.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString('base64');
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const dataUrl = `data:${contentType};base64,${base64}`;
+
+    return NextResponse.json({ image: dataUrl });
   } catch (err: any) {
     console.error(err);
     return NextResponse.json(
