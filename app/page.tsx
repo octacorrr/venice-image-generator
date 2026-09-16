@@ -10,7 +10,8 @@ type GalleryItem = {
 };
 
 const MODELS = [
-  { value: 'flux', label: 'Flux (rápido)' },
+  { value: 'turbo', label: 'Turbo (NSFW · default)' },
+  { value: 'flux', label: 'Flux' },
   { value: 'black-forest-labs/flux.1-schnell', label: 'Flux Schnell' },
   { value: 'tongyi-mai/z-image-turbo', label: 'Z-Image Turbo' },
   { value: 'bytedance/seedream-4.0', label: 'Seedream 4.0' },
@@ -36,6 +37,15 @@ const STYLES = [
   { value: 'cartoon style, illustration', label: 'Cartoon' },
 ];
 
+const CHARACTERS = [
+  { value: '', label: 'Sin especificar' },
+  { value: 'Levi Ackerman from Attack on Titan, short black hair, undercut, sharp grey eyes, athletic lean body, serious expression', label: 'Levi Ackerman' },
+  { value: 'Satoru Gojo from Jujutsu Kaisen, white hair, blindfold or blue eyes, tall, handsome, confident smile', label: 'Satoru Gojo' },
+  { value: 'Ryomen Sukuna from Jujutsu Kaisen, pink hair, black tattoos on face and body, four arms, menacing expression, muscular', label: 'Ryomen Sukuna' },
+  { value: 'Mash Burnedead from Mashle, short black hair, muscular body, expressionless face, pure muscle', label: 'Mash Burnedead' },
+  { value: 'Raine Ames, beautiful detailed face, distinctive features', label: 'Raine Ames' },
+];
+
 const COUPLE_TYPES = [
   { value: '', label: 'Sin especificar' },
   { value: 'man and woman', label: 'Hombre y Mujer' },
@@ -47,30 +57,21 @@ const COUPLE_TYPES = [
   { value: 'threesome, two men and one woman', label: 'Trío (2H + M)' },
 ];
 
-const LOCATIONS = [
-  { value: '', label: 'Sin especificar' },
-  { value: 'in a luxury hotel room', label: 'Hotel de lujo' },
-  { value: 'in a cozy cabin', label: 'Cabaña' },
-  { value: 'on the beach', label: 'Playa' },
-  { value: 'in a bedroom', label: 'Habitación' },
-  { value: 'in a bathroom', label: 'Baño' },
-  { value: 'in a forest', label: 'Bosque' },
-  { value: 'in a car', label: 'Coche' },
-  { value: 'in a pool', label: 'Piscina' },
-  { value: 'in an office', label: 'Oficina' },
-];
-
+// Nombres simples en UI, detalle interno para mejor resultado
 const POSITIONS = [
   { value: '', label: 'Sin especificar' },
-  { value: 'missionary position', label: 'Misionero' },
-  { value: 'doggy style, from behind', label: 'Perrito (doggy)' },
-  { value: 'cowgirl position, riding on top', label: 'Cowgirl (ella arriba)' },
-  { value: 'reverse cowgirl', label: 'Cowgirl inversa' },
-  { value: 'standing sex, against the wall', label: 'De pie' },
-  { value: 'spooning position', label: 'Cucharita' },
-  { value: '69 position', label: '69' },
-  { value: 'bent over', label: 'Inclinada' },
-  { value: 'on all fours', label: 'A cuatro patas' },
+  { value: 'missionary position, legs spread, deep penetration, intimate eye contact', label: '1 · Misionero' },
+  { value: 'doggy style, from behind, on all fours, arched back, looking back', label: '2 · Perrito' },
+  { value: 'cowgirl position, woman on top riding, bouncing, hands on chest', label: '3 · Cowgirl' },
+  { value: 'reverse cowgirl, woman on top facing away, looking back over shoulder', label: '4 · Cowgirl inversa' },
+  { value: 'standing sex, against the wall, one leg raised, passionate', label: '5 · De pie' },
+  { value: 'spooning position, side by side, intimate, legs intertwined', label: '6 · Cucharita' },
+  { value: '69 position, mutual oral, both giving and receiving', label: '7 · 69' },
+  { value: 'bent over, leaning forward, hands on surface, from behind', label: '8 · Inclinada' },
+  { value: 'on all fours, presenting, arched back, ready', label: '9 · A cuatro patas' },
+  { value: 'mating press, legs pushed back, deep penetration, dominant', label: '10 · Mating press' },
+  { value: 'prone bone, lying face down, from behind, hips raised', label: '11 · Prone bone' },
+  { value: 'lotus position, sitting face to face, legs wrapped, intimate embrace', label: '12 · Loto' },
 ];
 
 const ANGLES = [
@@ -107,11 +108,11 @@ const THEMES = [
 
 export default function Home() {
   const [prompt, setPrompt] = useState('');
-  const [model, setModel] = useState('flux');
+  const [model, setModel] = useState('turbo');
   const [quality, setQuality] = useState('high');
   const [style, setStyle] = useState('');
+  const [character, setCharacter] = useState('');
   const [coupleType, setCoupleType] = useState('');
-  const [location, setLocation] = useState('');
   const [position, setPosition] = useState('');
   const [angle, setAngle] = useState('');
   const [aspect, setAspect] = useState('1:1');
@@ -146,15 +147,14 @@ export default function Home() {
     } catch {}
   }, [theme]);
 
-  // Solo añade partes que tengan valor (Sin especificar = no interviene)
   const buildFinalPrompt = () => {
     const parts: string[] = [];
 
+    if (character) parts.push(character);
     if (coupleType) parts.push(coupleType);
     if (prompt.trim()) parts.push(prompt.trim());
     if (position) parts.push(position);
     if (angle) parts.push(angle);
-    if (location) parts.push(location);
     if (style) parts.push(style);
 
     return parts.join(', ');
@@ -373,6 +373,13 @@ export default function Home() {
           </div>
 
           <div>
+            <label style={{ fontSize: '12px', color: currentTheme.muted, display: 'block', marginBottom: '4px' }}>Personaje</label>
+            <select value={character} onChange={(e) => setCharacter(e.target.value)} style={selectStyle}>
+              {CHARACTERS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+
+          <div>
             <label style={{ fontSize: '12px', color: currentTheme.muted, display: 'block', marginBottom: '4px' }}>Tipo de pareja</label>
             <select value={coupleType} onChange={(e) => setCoupleType(e.target.value)} style={selectStyle}>
               {COUPLE_TYPES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -383,13 +390,6 @@ export default function Home() {
             <label style={{ fontSize: '12px', color: currentTheme.muted, display: 'block', marginBottom: '4px' }}>Estilo</label>
             <select value={style} onChange={(e) => setStyle(e.target.value)} style={selectStyle}>
               {STYLES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label style={{ fontSize: '12px', color: currentTheme.muted, display: 'block', marginBottom: '4px' }}>Lugar</label>
-            <select value={location} onChange={(e) => setLocation(e.target.value)} style={selectStyle}>
-              {LOCATIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
 
