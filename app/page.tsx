@@ -75,6 +75,9 @@ export default function Home() {
     let final = prompt.trim();
     if (position) final += `, ${position}`;
     if (angle) final += `, ${angle}`;
+    if (negativePrompt.trim()) {
+      final += `. Avoid: ${negativePrompt}`;
+    }
     return final;
   };
 
@@ -92,7 +95,6 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: buildFinalPrompt(),
-          negative_prompt: negativePrompt,
           width: selectedAspect.w,
           height: selectedAspect.h,
         }),
@@ -104,12 +106,14 @@ export default function Home() {
         throw new Error(data.error || 'Error al generar');
       }
 
-      setImage(data.image);
+      // Añadimos un timestamp para forzar recarga de la imagen
+      const imageWithCacheBust = `${data.image}&t=${Date.now()}`;
+      setImage(imageWithCacheBust);
 
       const newItem: GalleryItem = {
         id: Date.now().toString(),
         prompt: buildFinalPrompt(),
-        image: data.image,
+        image: imageWithCacheBust,
         createdAt: Date.now(),
       };
       setGallery(prev => [newItem, ...prev].slice(0, 30));
@@ -120,11 +124,20 @@ export default function Home() {
     }
   };
 
-  const downloadImage = (src: string, name?: string) => {
-    const a = document.createElement('a');
-    a.href = src;
-    a.download = name || `venice-${Date.now()}.webp`;
-    a.click();
+  const downloadImage = async (src: string, name?: string) => {
+    try {
+      const res = await fetch(src);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name || `pollinations-${Date.now()}.jpg`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // Fallback: abrir en nueva pestaña
+      window.open(src, '_blank');
+    }
   };
 
   const removeFromGallery = (id: string) => {
@@ -149,10 +162,10 @@ export default function Home() {
     }}>
       <header style={{ textAlign: 'center' }}>
         <h1 style={{ fontSize: '26px', fontWeight: 600, marginBottom: '6px' }}>
-          Venice Image Generator
+          Image Generator
         </h1>
         <p style={{ color: '#888', fontSize: '13px' }}>
-          Estilo Grok · NSFW enabled · lustify-v8
+          Powered by Pollinations.ai · Gratis · Sin API key
         </p>
       </header>
 
@@ -299,7 +312,7 @@ export default function Home() {
               animation: 'spin 0.9s linear infinite',
               margin: '0 auto 14px',
             }} />
-            Generando imagen...
+            Generando imagen (puede tardar 10-20 segundos)...
           </div>
         </div>
       )}
@@ -401,7 +414,7 @@ export default function Home() {
                   gap: '6px',
                 }}>
                   <button
-                    onClick={() => downloadImage(item.image, `venice-${item.id}.webp`)}
+                    onClick={() => downloadImage(item.image, `pollinations-${item.id}.jpg`)}
                     style={{
                       flex: 1,
                       background: '#222',

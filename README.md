@@ -1,32 +1,22 @@
-# Venice Image Generator (estilo Grok)
+# Image Generator (Pollinations.ai)
 
-Generador de imágenes AI usando Venice.ai con soporte NSFW.
+Generador de imágenes AI gratis usando Pollinations.ai (sin API key).
+
+## Características
+
+- Gratis, sin necesidad de API key
+- Opciones de posiciones sexuales, ángulo de cámara y formato
+- Negative prompt
+- Galería de imágenes generadas (se guarda en el navegador)
+- Descarga de imágenes
 
 ## Cómo usarlo
 
-1. Clona el repo
-2. Instala dependencias:
-```bash
-npm install
-```
+1. Clona el repo o importa en Vercel
+2. No necesitas ninguna variable de entorno
+3. Deploy y listo
 
-3. Crea un archivo `.env.local` y pon tu clave:
-```
-VENICE_API_KEY=tu_clave_de_venice
-```
+## Nota
 
-4. Ejecuta en local:
-```bash
-npm run dev
-```
-
-5. Para desplegar en Vercel:
-   - Sube el repo a Vercel
-   - En Project Settings → Environment Variables agrega `VENICE_API_KEY`
-   - Deploy
-
-## Modelo usado
-- `lustify-v8` (uncensored / bueno para NSFW)
-- `safe_mode: false`
-
-Cambia el modelo en `app/api/generate/route.ts` si quieres otro.
+Usa el endpoint público de Pollinations (`image.pollinations.ai`).  
+Tiene límite de velocidad en el plan anónimo (aprox. 1 imagen cada 15 segundos).
