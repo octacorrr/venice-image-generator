@@ -9,15 +9,38 @@ type GalleryItem = {
   createdAt: number;
 };
 
-const ANGLES = [
-  { value: '', label: 'Automático' },
-  { value: 'from a low angle looking up', label: 'Ángulo bajo (looking up)' },
-  { value: 'from a high angle looking down', label: 'Ángulo alto (looking down)' },
-  { value: 'eye level shot', label: 'Nivel de ojos' },
-  { value: 'dutch angle', label: 'Ángulo holandés' },
-  { value: 'from behind', label: 'Desde atrás' },
-  { value: 'side view / profile', label: 'Vista de perfil' },
-  { value: 'three-quarter view', label: 'Vista tres cuartos' },
+const STYLES = [
+  { value: '', label: 'Sin estilo específico' },
+  { value: 'photorealistic, realistic', label: 'Realistic' },
+  { value: 'anime style, anime', label: 'Anime' },
+  { value: 'anime realistic, semi-realistic anime', label: 'Anime Realistic' },
+  { value: '3d render, cgi', label: '3D Render' },
+  { value: 'cartoon style', label: 'Cartoon' },
+  { value: 'oil painting style', label: 'Pintura' },
+];
+
+const COUPLE_TYPES = [
+  { value: '', label: 'Sin especificar' },
+  { value: 'man and woman', label: 'Hombre y Mujer' },
+  { value: 'two women, lesbian', label: 'Mujer y Mujer' },
+  { value: 'two men, gay', label: 'Hombre y Hombre' },
+  { value: 'one woman', label: 'Solo Mujer' },
+  { value: 'one man', label: 'Solo Hombre' },
+  { value: 'threesome, man and two women', label: 'Trío (H + 2M)' },
+  { value: 'threesome, two men and one woman', label: 'Trío (2H + M)' },
+];
+
+const LOCATIONS = [
+  { value: '', label: 'Sin lugar específico' },
+  { value: 'in a luxury hotel room', label: 'Hotel de lujo' },
+  { value: 'in a cozy cabin', label: 'Cabaña' },
+  { value: 'on the beach', label: 'Playa' },
+  { value: 'in a bedroom', label: 'Habitación' },
+  { value: 'in a bathroom', label: 'Baño' },
+  { value: 'in a forest', label: 'Bosque' },
+  { value: 'in a car', label: 'Coche' },
+  { value: 'in a pool', label: 'Piscina' },
+  { value: 'in an office', label: 'Oficina' },
 ];
 
 const POSITIONS = [
@@ -32,36 +55,59 @@ const POSITIONS = [
   { value: 'lotus position', label: 'Loto' },
   { value: 'prone bone', label: 'Prone bone' },
   { value: 'mating press', label: 'Mating press' },
-  { value: 'amazon position', label: 'Amazon' },
-  { value: 'full nelson', label: 'Full nelson' },
   { value: 'bent over', label: 'Inclinada / bent over' },
-  { value: 'legs over shoulders', label: 'Piernas sobre hombros' },
   { value: 'on all fours', label: 'A cuatro patas' },
+];
+
+const ANGLES = [
+  { value: '', label: 'Automático' },
+  { value: 'from a low angle looking up', label: 'Ángulo bajo' },
+  { value: 'from a high angle looking down', label: 'Ángulo alto' },
+  { value: 'eye level shot', label: 'Nivel de ojos' },
+  { value: 'from behind', label: 'Desde atrás' },
+  { value: 'side view / profile', label: 'Vista de perfil' },
 ];
 
 const ASPECTS = [
   { value: '1:1', label: 'Cuadrado (1:1)', w: 1024, h: 1024 },
   { value: '3:4', label: 'Retrato (3:4)', w: 768, h: 1024 },
   { value: '4:3', label: 'Paisaje (4:3)', w: 1024, h: 768 },
-  { value: '9:16', label: 'Vertical móvil (9:16)', w: 576, h: 1024 },
+  { value: '9:16', label: 'Vertical (9:16)', w: 576, h: 1024 },
   { value: '16:9', label: 'Horizontal (16:9)', w: 1024, h: 576 },
 ];
 
+const THEMES = [
+  { id: 'dark', name: 'Oscuro', bg: '#0f0f0f', card: '#1a1a1a', text: '#e5e5e5', muted: '#888', border: '#2a2a2a', accent: '#fff' },
+  { id: 'purple', name: 'Púrpura', bg: '#13091f', card: '#1e1230', text: '#e8e0f0', muted: '#9b8bb8', border: '#3a2a50', accent: '#c084fc' },
+  { id: 'blue', name: 'Azul', bg: '#0a1220', card: '#111b2e', text: '#e0e8f5', muted: '#7a8ba8', border: '#1e2d45', accent: '#60a5fa' },
+  { id: 'rose', name: 'Rosa', bg: '#1a0f14', card: '#26151c', text: '#f5e0e8', muted: '#b88a9b', border: '#3d2430', accent: '#f472b6' },
+];
+
+const DEFAULT_PROMPT = 'beautiful detailed body, seductive expression, intimate moment, highly detailed';
+
 export default function Home() {
   const [prompt, setPrompt] = useState('');
-  const [negativePrompt, setNegativePrompt] = useState('blurry, low quality, deformed, bad anatomy, extra limbs, watermark, text');
-  const [angle, setAngle] = useState('');
+  const [style, setStyle] = useState('');
+  const [coupleType, setCoupleType] = useState('');
+  const [location, setLocation] = useState('');
   const [position, setPosition] = useState('');
+  const [angle, setAngle] = useState('');
   const [aspect, setAspect] = useState('1:1');
+  const [theme, setTheme] = useState('dark');
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
+  const [showThemes, setShowThemes] = useState(false);
+
+  const currentTheme = THEMES.find(t => t.id === theme) || THEMES[0];
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem('venice-gallery');
       if (saved) setGallery(JSON.parse(saved));
+      const savedTheme = localStorage.getItem('app-theme');
+      if (savedTheme) setTheme(savedTheme);
     } catch {}
   }, []);
 
@@ -71,30 +117,43 @@ export default function Home() {
     } catch {}
   }, [gallery]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem('app-theme', theme);
+    } catch {}
+  }, [theme]);
+
   const buildFinalPrompt = () => {
-    let final = prompt.trim();
-    if (position) final += `, ${position}`;
-    if (angle) final += `, ${angle}`;
-    if (negativePrompt.trim()) {
-      final += `. Avoid: ${negativePrompt}`;
+    const parts: string[] = [];
+
+    if (coupleType) parts.push(coupleType);
+    if (prompt.trim()) {
+      parts.push(prompt.trim());
+    } else {
+      parts.push(DEFAULT_PROMPT);
     }
-    return final;
+    if (position) parts.push(position);
+    if (angle) parts.push(angle);
+    if (location) parts.push(location);
+    if (style) parts.push(style);
+
+    return parts.join(', ');
   };
 
   const generate = async () => {
-    if (!prompt.trim()) return;
     setLoading(true);
     setError('');
     setImage(null);
 
     const selectedAspect = ASPECTS.find(a => a.value === aspect) || ASPECTS[0];
+    const finalPrompt = buildFinalPrompt();
 
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: buildFinalPrompt(),
+          prompt: finalPrompt,
           width: selectedAspect.w,
           height: selectedAspect.h,
         }),
@@ -106,13 +165,12 @@ export default function Home() {
         throw new Error(data.error || 'Error al generar');
       }
 
-      // Añadimos un timestamp para forzar recarga de la imagen
       const imageWithCacheBust = `${data.image}&t=${Date.now()}`;
       setImage(imageWithCacheBust);
 
       const newItem: GalleryItem = {
         id: Date.now().toString(),
-        prompt: buildFinalPrompt(),
+        prompt: finalPrompt,
         image: imageWithCacheBust,
         createdAt: Date.now(),
       };
@@ -131,11 +189,10 @@ export default function Home() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = name || `pollinations-${Date.now()}.jpg`;
+      a.download = name || `image-${Date.now()}.jpg`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      // Fallback: abrir en nueva pestaña
       window.open(src, '_blank');
     }
   };
@@ -150,6 +207,17 @@ export default function Home() {
     }
   };
 
+  const selectStyle: React.CSSProperties = {
+    width: '100%',
+    background: currentTheme.bg,
+    border: `1px solid ${currentTheme.border}`,
+    borderRadius: '8px',
+    padding: '8px 10px',
+    color: currentTheme.text,
+    fontSize: '13px',
+    outline: 'none',
+  };
+
   return (
     <main style={{
       maxWidth: '1000px',
@@ -159,37 +227,99 @@ export default function Home() {
       flexDirection: 'column',
       gap: '24px',
       minHeight: '100vh',
+      background: currentTheme.bg,
+      color: currentTheme.text,
+      transition: 'background 0.3s, color 0.3s',
     }}>
-      <header style={{ textAlign: 'center' }}>
-        <h1 style={{ fontSize: '26px', fontWeight: 600, marginBottom: '6px' }}>
-          Image Generator
-        </h1>
-        <p style={{ color: '#888', fontSize: '13px' }}>
-          Powered by Pollinations.ai · Gratis · Sin API key
-        </p>
+      {/* Header con selector de tema */}
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1 style={{ fontSize: '24px', fontWeight: 600, marginBottom: '4px' }}>
+            Image Generator
+          </h1>
+          <p style={{ color: currentTheme.muted, fontSize: '13px' }}>
+            Powered by Pollinations.ai · Gratis
+          </p>
+        </div>
+
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setShowThemes(!showThemes)}
+            style={{
+              background: currentTheme.card,
+              border: `1px solid ${currentTheme.border}`,
+              borderRadius: '10px',
+              padding: '8px 14px',
+              color: currentTheme.text,
+              fontSize: '13px',
+              cursor: 'pointer',
+            }}
+          >
+            Tema ▾
+          </button>
+
+          {showThemes && (
+            <div style={{
+              position: 'absolute',
+              right: 0,
+              top: '110%',
+              background: currentTheme.card,
+              border: `1px solid ${currentTheme.border}`,
+              borderRadius: '12px',
+              padding: '8px',
+              zIndex: 50,
+              minWidth: '140px',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+            }}>
+              {THEMES.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => { setTheme(t.id); setShowThemes(false); }}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: theme === t.id ? t.accent : 'transparent',
+                    color: theme === t.id ? '#000' : currentTheme.text,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    marginBottom: '2px',
+                  }}
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </header>
 
+      {/* Formulario */}
       <div style={{
-        background: '#1a1a1a',
+        background: currentTheme.card,
         borderRadius: '16px',
         padding: '20px',
-        border: '1px solid #2a2a2a',
+        border: `1px solid ${currentTheme.border}`,
       }}>
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Describe la imagen que quieres generar..."
+          placeholder="Describe lo que quieres (opcional). Si lo dejas vacío se usa un prompt base..."
           rows={3}
           style={{
             width: '100%',
-            background: '#0f0f0f',
-            border: '1px solid #333',
+            background: currentTheme.bg,
+            border: `1px solid ${currentTheme.border}`,
             borderRadius: '12px',
             padding: '14px',
-            color: '#fff',
+            color: currentTheme.text,
             fontSize: '15px',
             outline: 'none',
-            marginBottom: '14px',
+            marginBottom: '16px',
+            resize: 'none',
           }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -201,78 +331,67 @@ export default function Home() {
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
           gap: '12px',
-          marginBottom: '14px',
+          marginBottom: '16px',
         }}>
           <div>
-            <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '4px' }}>Posición sexual</label>
-            <select
-              value={position}
-              onChange={(e) => setPosition(e.target.value)}
-              style={selectStyle}
-            >
+            <label style={{ fontSize: '12px', color: currentTheme.muted, display: 'block', marginBottom: '4px' }}>Tipo de pareja</label>
+            <select value={coupleType} onChange={(e) => setCoupleType(e.target.value)} style={selectStyle}>
+              {COUPLE_TYPES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '12px', color: currentTheme.muted, display: 'block', marginBottom: '4px' }}>Estilo</label>
+            <select value={style} onChange={(e) => setStyle(e.target.value)} style={selectStyle}>
+              {STYLES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '12px', color: currentTheme.muted, display: 'block', marginBottom: '4px' }}>Lugar</label>
+            <select value={location} onChange={(e) => setLocation(e.target.value)} style={selectStyle}>
+              {LOCATIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '12px', color: currentTheme.muted, display: 'block', marginBottom: '4px' }}>Posición</label>
+            <select value={position} onChange={(e) => setPosition(e.target.value)} style={selectStyle}>
               {POSITIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
 
           <div>
-            <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '4px' }}>Ángulo / Cámara</label>
-            <select
-              value={angle}
-              onChange={(e) => setAngle(e.target.value)}
-              style={selectStyle}
-            >
+            <label style={{ fontSize: '12px', color: currentTheme.muted, display: 'block', marginBottom: '4px' }}>Ángulo</label>
+            <select value={angle} onChange={(e) => setAngle(e.target.value)} style={selectStyle}>
               {ANGLES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
 
           <div>
-            <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '4px' }}>Formato</label>
-            <select
-              value={aspect}
-              onChange={(e) => setAspect(e.target.value)}
-              style={selectStyle}
-            >
+            <label style={{ fontSize: '12px', color: currentTheme.muted, display: 'block', marginBottom: '4px' }}>Formato</label>
+            <select value={aspect} onChange={(e) => setAspect(e.target.value)} style={selectStyle}>
               {ASPECTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
         </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '4px' }}>
-            Negative prompt (lo que NO quieres)
-          </label>
-          <input
-            type="text"
-            value={negativePrompt}
-            onChange={(e) => setNegativePrompt(e.target.value)}
-            style={{
-              width: '100%',
-              background: '#0f0f0f',
-              border: '1px solid #333',
-              borderRadius: '8px',
-              padding: '10px 12px',
-              color: '#ccc',
-              fontSize: '13px',
-              outline: 'none',
-            }}
-          />
-        </div>
-
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button
             onClick={generate}
-            disabled={loading || !prompt.trim()}
+            disabled={loading}
             style={{
-              background: loading ? '#333' : '#fff',
-              color: loading ? '#888' : '#000',
+              background: loading ? currentTheme.border : currentTheme.accent,
+              color: loading ? currentTheme.muted : (theme === 'dark' ? '#000' : '#000'),
               padding: '11px 26px',
               borderRadius: '999px',
               fontWeight: 600,
               fontSize: '14px',
-              opacity: loading || !prompt.trim() ? 0.55 : 1,
-              transition: 'all 0.2s',
+              opacity: loading ? 0.6 : 1,
+              border: 'none',
+              cursor: loading ? 'not-allowed' : 'pointer',
             }}
           >
             {loading ? 'Generando...' : 'Generar'}
@@ -297,32 +416,32 @@ export default function Home() {
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          height: '360px',
-          background: '#1a1a1a',
+          height: '340px',
+          background: currentTheme.card,
           borderRadius: '16px',
-          border: '1px solid #2a2a2a',
+          border: `1px solid ${currentTheme.border}`,
         }}>
-          <div style={{ textAlign: 'center', color: '#888' }}>
+          <div style={{ textAlign: 'center', color: currentTheme.muted }}>
             <div style={{
               width: '36px',
               height: '36px',
-              border: '3px solid #333',
-              borderTopColor: '#fff',
+              border: `3px solid ${currentTheme.border}`,
+              borderTopColor: currentTheme.accent,
               borderRadius: '50%',
               animation: 'spin 0.9s linear infinite',
               margin: '0 auto 14px',
             }} />
-            Generando imagen (puede tardar 10-20 segundos)...
+            Generando imagen...
           </div>
         </div>
       )}
 
       {image && !loading && (
         <div style={{
-          background: '#1a1a1a',
+          background: currentTheme.card,
           borderRadius: '16px',
           padding: '16px',
-          border: '1px solid #2a2a2a',
+          border: `1px solid ${currentTheme.border}`,
           textAlign: 'center',
         }}>
           <img
@@ -340,11 +459,12 @@ export default function Home() {
             style={{
               marginTop: '14px',
               background: 'transparent',
-              color: '#aaa',
+              color: currentTheme.muted,
               fontSize: '13px',
               padding: '6px 14px',
-              border: '1px solid #444',
+              border: `1px solid ${currentTheme.border}`,
               borderRadius: '8px',
+              cursor: 'pointer',
             }}
           >
             Descargar imagen
@@ -367,11 +487,12 @@ export default function Home() {
               onClick={clearGallery}
               style={{
                 background: 'transparent',
-                color: '#888',
+                color: currentTheme.muted,
                 fontSize: '12px',
-                border: '1px solid #444',
+                border: `1px solid ${currentTheme.border}`,
                 borderRadius: '6px',
                 padding: '4px 10px',
+                cursor: 'pointer',
               }}
             >
               Borrar todo
@@ -380,18 +501,17 @@ export default function Home() {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
             gap: '12px',
           }}>
             {gallery.map(item => (
               <div
                 key={item.id}
                 style={{
-                  background: '#1a1a1a',
+                  background: currentTheme.card,
                   borderRadius: '12px',
                   overflow: 'hidden',
-                  border: '1px solid #2a2a2a',
-                  position: 'relative',
+                  border: `1px solid ${currentTheme.border}`,
                 }}
               >
                 <img
@@ -410,19 +530,19 @@ export default function Home() {
                 <div style={{
                   padding: '8px',
                   display: 'flex',
-                  justifyContent: 'space-between',
                   gap: '6px',
                 }}>
                   <button
-                    onClick={() => downloadImage(item.image, `pollinations-${item.id}.jpg`)}
+                    onClick={() => downloadImage(item.image, `image-${item.id}.jpg`)}
                     style={{
                       flex: 1,
-                      background: '#222',
-                      color: '#ccc',
+                      background: currentTheme.bg,
+                      color: currentTheme.muted,
                       fontSize: '11px',
                       padding: '5px',
                       borderRadius: '6px',
                       border: 'none',
+                      cursor: 'pointer',
                     }}
                   >
                     Descargar
@@ -436,6 +556,7 @@ export default function Home() {
                       padding: '5px 8px',
                       borderRadius: '6px',
                       border: 'none',
+                      cursor: 'pointer',
                     }}
                   >
                     ✕
@@ -455,14 +576,3 @@ export default function Home() {
     </main>
   );
 }
-
-const selectStyle: React.CSSProperties = {
-  width: '100%',
-  background: '#0f0f0f',
-  border: '1px solid #333',
-  borderRadius: '8px',
-  padding: '8px 10px',
-  color: '#eee',
-  fontSize: '13px',
-  outline: 'none',
-};
