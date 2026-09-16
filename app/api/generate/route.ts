@@ -13,18 +13,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Prompt requerido' }, { status: 400 });
     }
 
-    // Boosters fuertes de calidad + anatomía
-    const qualityBoost = ", ultra detailed, sharp focus, intricate details, realistic skin texture, detailed genitals, perfect anatomy, high resolution, 8k uhd, masterpiece, best quality, photorealistic, professional photography, cinematic lighting";
-    
-    // Negative más agresivo
-    const negative = "blurry, low quality, deformed, bad anatomy, extra limbs, missing limbs, fused fingers, too many fingers, mutated hands, poorly drawn hands, poorly drawn face, mutation, ugly, tiling, out of frame, extra arms, extra legs, disfigured, gross proportions, malformed limbs, missing arms, missing legs, floating limbs, disconnected limbs, watermark, text, logo, soft focus, oversaturated";
+    // Boosters cortos y efectivos (evita que la URL se rompa)
+    const qualityBoost = ", highly detailed, sharp focus, realistic skin, perfect anatomy, photorealistic, 8k";
 
-    const fullPrompt = `${prompt}${qualityBoost}. Negative prompt: ${negative}`;
+    const fullPrompt = prompt.trim() + qualityBoost;
 
     const encodedPrompt = encodeURIComponent(fullPrompt);
     const params = new URLSearchParams({
-      width: String(width),
-      height: String(height),
+      width: String(Math.min(width, 1024)),
+      height: String(Math.min(height, 1024)),
       model: 'flux',
       nologo: 'true',
       private: 'true',
