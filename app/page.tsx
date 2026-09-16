@@ -19,13 +19,21 @@ const MODELS = [
   { value: 'x-ai/grok-imagine-image', label: 'Grok Imagine' },
 ];
 
+const QUALITIES = [
+  { value: 'default', label: 'Por defecto' },
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
+  { value: 'hd', label: 'HD' },
+];
+
 const STYLES = [
-  { value: '', label: 'Sin estilo específico' },
-  { value: 'photorealistic, realistic', label: 'Realistic' },
+  { value: '', label: 'Sin especificar' },
+  { value: 'photorealistic, realistic photography', label: 'Realistic' },
   { value: 'anime style, anime', label: 'Anime' },
   { value: 'anime realistic, semi-realistic anime', label: 'Anime Realistic' },
-  { value: '3d render, cgi', label: '3D Render' },
-  { value: 'cartoon style', label: 'Cartoon' },
+  { value: '3d render, cgi, octane render', label: '3D Render' },
+  { value: 'cartoon style, illustration', label: 'Cartoon' },
 ];
 
 const COUPLE_TYPES = [
@@ -40,7 +48,7 @@ const COUPLE_TYPES = [
 ];
 
 const LOCATIONS = [
-  { value: '', label: 'Sin lugar específico' },
+  { value: '', label: 'Sin especificar' },
   { value: 'in a luxury hotel room', label: 'Hotel de lujo' },
   { value: 'in a cozy cabin', label: 'Cabaña' },
   { value: 'on the beach', label: 'Playa' },
@@ -53,7 +61,7 @@ const LOCATIONS = [
 ];
 
 const POSITIONS = [
-  { value: '', label: 'Sin posición específica' },
+  { value: '', label: 'Sin especificar' },
   { value: 'missionary position', label: 'Misionero' },
   { value: 'doggy style, from behind', label: 'Perrito (doggy)' },
   { value: 'cowgirl position, riding on top', label: 'Cowgirl (ella arriba)' },
@@ -66,7 +74,7 @@ const POSITIONS = [
 ];
 
 const ANGLES = [
-  { value: '', label: 'Automático' },
+  { value: '', label: 'Sin especificar' },
   { value: 'from a low angle looking up', label: 'Ángulo bajo' },
   { value: 'from a high angle looking down', label: 'Ángulo alto' },
   { value: 'eye level shot', label: 'Nivel de ojos' },
@@ -82,6 +90,14 @@ const ASPECTS = [
   { value: '16:9', label: 'Horizontal (16:9)', w: 1024, h: 576 },
 ];
 
+const QUANTITIES = [
+  { value: 1, label: '1 imagen' },
+  { value: 2, label: '2 imágenes' },
+  { value: 3, label: '3 imágenes' },
+  { value: 4, label: '4 imágenes' },
+  { value: 5, label: '5 imágenes' },
+];
+
 const THEMES = [
   { id: 'dark', name: 'Oscuro', bg: '#0f0f0f', card: '#1a1a1a', text: '#e5e5e5', muted: '#888', border: '#2a2a2a', accent: '#fff' },
   { id: 'purple', name: 'Púrpura', bg: '#13091f', card: '#1e1230', text: '#e8e0f0', muted: '#9b8bb8', border: '#3a2a50', accent: '#c084fc' },
@@ -89,19 +105,19 @@ const THEMES = [
   { id: 'rose', name: 'Rosa', bg: '#1a0f14', card: '#26151c', text: '#f5e0e8', muted: '#b88a9b', border: '#3d2430', accent: '#f472b6' },
 ];
 
-const DEFAULT_PROMPT = 'beautiful detailed body, seductive expression, intimate moment, highly detailed';
-
 export default function Home() {
   const [prompt, setPrompt] = useState('');
   const [model, setModel] = useState('flux');
+  const [quality, setQuality] = useState('high');
   const [style, setStyle] = useState('');
   const [coupleType, setCoupleType] = useState('');
   const [location, setLocation] = useState('');
   const [position, setPosition] = useState('');
   const [angle, setAngle] = useState('');
   const [aspect, setAspect] = useState('1:1');
+  const [quantity, setQuantity] = useState(1);
   const [theme, setTheme] = useState('dark');
-  const [image, setImage] = useState<string | null>(null);
+  const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
@@ -130,25 +146,32 @@ export default function Home() {
     } catch {}
   }, [theme]);
 
+  // Solo añade partes que tengan valor (Sin especificar = no interviene)
   const buildFinalPrompt = () => {
     const parts: string[] = [];
+
     if (coupleType) parts.push(coupleType);
     if (prompt.trim()) parts.push(prompt.trim());
-    else parts.push(DEFAULT_PROMPT);
     if (position) parts.push(position);
     if (angle) parts.push(angle);
     if (location) parts.push(location);
     if (style) parts.push(style);
+
     return parts.join(', ');
   };
 
   const generate = async () => {
+    const finalPrompt = buildFinalPrompt();
+    if (!finalPrompt.trim()) {
+      setError('Escribe un prompt o elige al menos una opción');
+      return;
+    }
+
     setLoading(true);
     setError('');
-    setImage(null);
+    setImages([]);
 
     const selectedAspect = ASPECTS.find(a => a.value === aspect) || ASPECTS[0];
-    const finalPrompt = buildFinalPrompt();
 
     try {
       const res = await fetch('/api/generate', {
@@ -159,6 +182,8 @@ export default function Home() {
           width: selectedAspect.w,
           height: selectedAspect.h,
           model,
+          quantity,
+          quality,
         }),
       });
 
@@ -168,16 +193,16 @@ export default function Home() {
         throw new Error(data.error || 'Error al generar');
       }
 
-      const imageWithCacheBust = `${data.image}&t=${Date.now()}`;
-      setImage(imageWithCacheBust);
+      const resultImages: string[] = data.images || (data.image ? [data.image] : []);
+      setImages(resultImages);
 
-      const newItem: GalleryItem = {
-        id: Date.now().toString(),
+      const newItems: GalleryItem[] = resultImages.map((img, i) => ({
+        id: `${Date.now()}-${i}`,
         prompt: finalPrompt,
-        image: imageWithCacheBust,
+        image: img,
         createdAt: Date.now(),
-      };
-      setGallery(prev => [newItem, ...prev].slice(0, 30));
+      }));
+      setGallery(prev => [...newItems, ...prev].slice(0, 40));
     } catch (err: any) {
       setError(err.message || 'Error desconocido');
     } finally {
@@ -187,14 +212,10 @@ export default function Home() {
 
   const downloadImage = async (src: string, name?: string) => {
     try {
-      const res = await fetch(src);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
+      a.href = src;
       a.download = name || `image-${Date.now()}.jpg`;
       a.click();
-      URL.revokeObjectURL(url);
     } catch {
       window.open(src, '_blank');
     }
@@ -302,7 +323,7 @@ export default function Home() {
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Describe lo que quieres (opcional)..."
+          placeholder="Describe lo que quieres generar..."
           rows={3}
           style={{
             width: '100%',
@@ -326,7 +347,7 @@ export default function Home() {
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
           gap: '12px',
           marginBottom: '16px',
         }}>
@@ -334,6 +355,20 @@ export default function Home() {
             <label style={{ fontSize: '12px', color: currentTheme.muted, display: 'block', marginBottom: '4px' }}>Modelo</label>
             <select value={model} onChange={(e) => setModel(e.target.value)} style={selectStyle}>
               {MODELS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '12px', color: currentTheme.muted, display: 'block', marginBottom: '4px' }}>Calidad</label>
+            <select value={quality} onChange={(e) => setQuality(e.target.value)} style={selectStyle}>
+              {QUALITIES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '12px', color: currentTheme.muted, display: 'block', marginBottom: '4px' }}>Cantidad</label>
+            <select value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} style={selectStyle}>
+              {QUANTITIES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
 
@@ -433,44 +468,53 @@ export default function Home() {
               animation: 'spin 0.9s linear infinite',
               margin: '0 auto 14px',
             }} />
-            Generando imagen...
+            Generando {quantity > 1 ? `${quantity} imágenes` : 'imagen'}...
           </div>
         </div>
       )}
 
-      {image && !loading && (
+      {images.length > 0 && !loading && (
         <div style={{
           background: currentTheme.card,
           borderRadius: '16px',
           padding: '16px',
           border: `1px solid ${currentTheme.border}`,
-          textAlign: 'center',
         }}>
-          <img
-            src={image}
-            alt="Generated"
-            style={{
-              maxWidth: '100%',
-              borderRadius: '12px',
-              display: 'block',
-              margin: '0 auto',
-            }}
-          />
-          <button
-            onClick={() => downloadImage(image)}
-            style={{
-              marginTop: '14px',
-              background: 'transparent',
-              color: currentTheme.muted,
-              fontSize: '13px',
-              padding: '6px 14px',
-              border: `1px solid ${currentTheme.border}`,
-              borderRadius: '8px',
-              cursor: 'pointer',
-            }}
-          >
-            Descargar imagen
-          </button>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: images.length === 1 ? '1fr' : 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '12px',
+          }}>
+            {images.map((img, i) => (
+              <div key={i} style={{ textAlign: 'center' }}>
+                <img
+                  src={img}
+                  alt={`Generated ${i + 1}`}
+                  style={{
+                    maxWidth: '100%',
+                    borderRadius: '12px',
+                    display: 'block',
+                    margin: '0 auto',
+                  }}
+                />
+                <button
+                  onClick={() => downloadImage(img, `image-${Date.now()}-${i}.jpg`)}
+                  style={{
+                    marginTop: '10px',
+                    background: 'transparent',
+                    color: currentTheme.muted,
+                    fontSize: '13px',
+                    padding: '6px 14px',
+                    border: `1px solid ${currentTheme.border}`,
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Descargar
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -524,7 +568,7 @@ export default function Home() {
                     display: 'block',
                     cursor: 'pointer',
                   }}
-                  onClick={() => setImage(item.image)}
+                  onClick={() => setImages([item.image])}
                   title={item.prompt}
                 />
                 <div style={{ padding: '8px', display: 'flex', gap: '6px' }}>
