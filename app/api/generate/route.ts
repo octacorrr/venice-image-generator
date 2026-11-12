@@ -10,6 +10,10 @@ export async function POST(req: NextRequest) {
       model = 'flux',
       quantity = 1,
       quality = 'high',
+      // `enhance` apagado por defecto: con enhance=true Pollinations corre
+      // una mejora de prompt con LLM en CADA llamada, así que con cantidad
+      // > 1 se pagaba esa llamada N veces por el mismo prompt.
+      enhance = false,
     } = body;
 
     if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
@@ -26,56 +30,86 @@ export async function POST(req: NextRequest) {
 
     const count = Math.min(Math.max(Number(quantity) || 1, 1), 5);
     const encodedPrompt = encodeURIComponent(prompt.trim());
-    const images: string[] = [];
+    const enhancePrompt = enhance === true;
+    const startedAt = Date.now();
 
-    for (let i = 0; i < count; i++) {
-      const seed = Math.floor(Math.random() * 999999999);
+    // Generación en paralelo: antes era un `for` secuencial y N imágenes
+    // tardaban la suma de las N. Con Promise.allSettled tardan lo que tarde
+    // la más lenta, y las que fallen no cancelan a las demás.
+    const results = await Promise.allSettled(
+      Array.from({ length: count }, async () => {
+        const seed = Math.floor(Math.random() * 999999999);
 
-      const params = new URLSearchParams({
-        model: String(model),
-        width: String(Math.min(Number(width) || 1024, 1024)),
-        height: String(Math.min(Number(height) || 1024, 1024)),
-        nologo: 'true',
-        private: 'true',
-        enhance: 'true',
-        seed: String(seed),
-      });
+        const params = new URLSearchParams({
+          model: String(model),
+          width: String(Math.min(Number(width) || 1024, 1024)),
+          height: String(Math.min(Number(height) || 1024, 1024)),
+          nologo: 'true',
+          private: 'true',
+          seed: String(seed),
+        });
 
-      // quality solo en modelos que lo soportan
-      if (quality && quality !== 'default') {
-        params.set('quality', String(quality));
-      }
+        // `enhance` solo si el usuario lo activó explícitamente.
+        if (enhancePrompt) {
+          params.set('enhance', 'true');
+        }
 
-      const imageUrl = `https://gen.pollinations.ai/image/${encodedPrompt}?${params.toString()}`;
+        // quality solo en modelos que lo soportan
+        if (quality && quality !== 'default') {
+          params.set('quality', String(quality));
+        }
 
-      const response = await fetch(imageUrl, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-        },
-      });
+        const imageUrl = `https://gen.pollinations.ai/image/${encodedPrompt}?${params.toString()}`;
 
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => '');
-        console.error('Pollinations error:', response.status, errorText);
-        // Si falla una, seguimos con las demás si hay más
-        if (count === 1) {
-          return NextResponse.json(
-            { error: `Error de Pollinations (${response.status}): ${errorText.slice(0, 200) || response.statusText}` },
-            { status: 500 }
+        const response = await fetch(imageUrl, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => '');
+          throw new Error(
+            `Error de Pollinations (${response.status}): ${errorText.slice(0, 200) || response.statusText}`
           );
         }
-        continue;
-      }
 
-      const arrayBuffer = await response.arrayBuffer();
-      const base64 = Buffer.from(arrayBuffer).toString('base64');
-      const contentType = response.headers.get('content-type') || 'image/jpeg';
-      images.push(`data:${contentType};base64,${base64}`);
+        const arrayBuffer = await response.arrayBuffer();
+        const base64 = Buffer.from(arrayBuffer).toString('base64');
+        const contentType = response.headers.get('content-type') || 'image/jpeg';
+        return `data:${contentType};base64,${base64}`;
+      })
+    );
+
+    const images: string[] = [];
+    const errors: string[] = [];
+    for (const r of results) {
+      if (r.status === 'fulfilled') images.push(r.value);
+      else errors.push(r.reason?.message || 'Error desconocido');
+    }
+    for (const message of errors) {
+      console.error('Pollinations error:', message);
     }
 
+    // Registro por generación para medir el gasto real en los logs de Vercel.
+    console.log(
+      JSON.stringify({
+        event: 'generate',
+        model: String(model),
+        quantity: count,
+        generated: images.length,
+        failed: errors.length,
+        enhance: enhancePrompt,
+        quality: quality || 'default',
+        promptChars: prompt.trim().length,
+        promptTokensApprox: Math.ceil(prompt.trim().length / 4),
+        ms: Date.now() - startedAt,
+      })
+    );
+
     if (images.length === 0) {
-      return NextResponse.json({ error: 'No se pudo generar ninguna imagen' }, { status: 500 });
+      return NextResponse.json({ error: errors[0] || 'No se pudo generar ninguna imagen' }, { status: 500 });
     }
 
     // Compatibilidad: si es 1 imagen devolvemos "image", si son varias "images"

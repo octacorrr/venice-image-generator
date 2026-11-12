@@ -32,6 +32,26 @@ const QUALITIES = [
   { value: 'hd', label: 'HD' },
 ];
 
+// Precio aproximado en Pollen por imagen (1K) según el catálogo público de
+// Pollinations (gen.pollinations.ai/image/models) consultado el 12 nov 2026.
+// 1 Pollen ≈ 1 USD. Los modelos con precio por token varían con la resolución
+// y el largo del prompt, así que estos valores son estimaciones para avisar
+// antes de generar; el cargo real lo define Pollinations.
+// `null` = sin precio verificado en el catálogo actual.
+const MODEL_PRICES: Record<string, number | null> = {
+  'turbo': 0.004,
+  'tongyi-mai/z-image-turbo': 0.004,
+  'flux': 0.002,
+  'black-forest-labs/flux.1-schnell': 0.002,
+  'lykon/dreamshaper-8-lcm': null,
+  'bytedance/seedream-4.0': 0.03,
+  'bytedance/seedream-5.0-lite': 0.035,
+  'x-ai/grok-imagine-image': 0.022,
+  'x-ai/grok-imagine-image-quality': 0.063,
+  'openai/gpt-image-1-mini': 0.008,
+  'openai/gpt-image-2': 0.031,
+};
+
 const STYLES = [
   { value: '', label: 'Sin especificar' },
   { value: 'photorealistic, realistic photography', label: 'Realistic' },
@@ -120,6 +140,10 @@ export default function Home() {
   const [angle, setAngle] = useState('');
   const [aspect, setAspect] = useState('1:1');
   const [quantity, setQuantity] = useState(1);
+  // Mejora del prompt con IA apagada por defecto: con enhance=true
+  // Pollinations corre un LLM en cada imagen, así que activarla suma una
+  // llamada extra por imagen generada.
+  const [enhancePrompt, setEnhancePrompt] = useState(false);
   const [theme, setTheme] = useState('dark');
   const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -161,6 +185,12 @@ export default function Home() {
     return parts.join(', ');
   };
 
+  // Estimación de costo antes de generar (no es el cargo real).
+  const finalPromptPreview = buildFinalPrompt();
+  const promptTokensApprox = Math.ceil(finalPromptPreview.length / 4);
+  const modelPricePerImage = MODEL_PRICES[model] ?? null;
+  const estimatedCost = modelPricePerImage != null ? modelPricePerImage * quantity : null;
+
   const generate = async () => {
     const finalPrompt = buildFinalPrompt();
     if (!finalPrompt.trim()) {
@@ -185,6 +215,7 @@ export default function Home() {
           model,
           quantity,
           quality,
+          enhance: enhancePrompt,
         }),
       });
 
@@ -410,6 +441,42 @@ export default function Home() {
               {ASPECTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
+
+          <div>
+            <label style={{ fontSize: '12px', color: currentTheme.muted, display: 'block', marginBottom: '4px' }}>Mejora con IA</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: currentTheme.text, cursor: 'pointer', padding: '8px 0' }}>
+              <input
+                type="checkbox"
+                checked={enhancePrompt}
+                onChange={(e) => setEnhancePrompt(e.target.checked)}
+              />
+              Mejorar prompt (gasta tokens extra por imagen)
+            </label>
+          </div>
+        </div>
+
+        <div style={{
+          background: currentTheme.bg,
+          border: `1px solid ${currentTheme.border}`,
+          borderRadius: '10px',
+          padding: '10px 14px',
+          marginBottom: '16px',
+          fontSize: '13px',
+          color: currentTheme.muted,
+          lineHeight: 1.6,
+        }}>
+          {estimatedCost != null ? (
+            <>Costo estimado: <span style={{ color: currentTheme.text, fontWeight: 600 }}>~{estimatedCost.toFixed(3)} Pollen (≈ ${estimatedCost.toFixed(2)})</span> por {quantity} {quantity > 1 ? 'imágenes' : 'imagen'} con {MODELS.find(m => m.value === model)?.label || model} ({modelPricePerImage?.toFixed(3)} Pollen por imagen, aprox.).</>
+          ) : (
+            <>Costo estimado: precio por imagen no verificado en el catálogo actual para este modelo.</>
+          )}
+          <br />
+          Prompt final: {finalPromptPreview.length} caracteres (~{promptTokensApprox} tokens aprox.).
+          {enhancePrompt && (
+            <> La mejora con IA está activada: suma una llamada extra al LLM por cada imagen.</>
+          )}
+          <br />
+          Precios aproximados según el catálogo de Pollinations; el cargo real lo define Pollinations.
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
